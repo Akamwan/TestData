@@ -7,11 +7,23 @@
     {
       "name": "dataset",
       "url": "https://raw.githubusercontent.com/Akamwan/TestData/main/testerData.csv",
-      "format": {"type": "csv"},
+      "format": {
+        "type": "csv",
+        "parse": {"STARTDATETIME": "date", "ENDDATETIME": "date"}
+      },
       "transform": [
         {"type": "filter", "expr": "datum.TECHID === '130363'"},
-        {"type": "formula", "as": "DUMMYSTARTDATETIME", "expr": "datum.STARTDATETIME"},
-        {"type": "formula", "as": "DUMMYENDDATETIME", "expr": "datum.ENDDATETIME"}
+       
+        {
+          "type": "formula",
+          "as": "DUMMYSTARTDATETIME",
+          "expr": "datum.STARTDATETIME"
+        },
+        {
+          "type": "formula",
+          "as": "DUMMYENDDATETIME",
+          "expr": "datum.ENDDATETIME"
+        }
       ]
     },
     {
@@ -22,6 +34,7 @@
           "type": "project",
           "fields": [
             "REPORTDATE",
+            "SHIFT",
             "TESTERID",
             "TECHID",
             "EN_LEAD",
@@ -39,27 +52,55 @@
         {
           "type": "formula",
           "as": "encodedDate",
-          "expr": "timeFormat(datum.REPORTDATE, '%m/%d/%y')"
+          "expr": "timeFormat(toDate(datum.REPORTDATE), '%m/%d/%y')"
         },
         {
           "type": "window",
           "sort": {
-            "field": [
-              "TECHID",
-              "DUMMYSTARTDATETIME"
-            ],
-            "order": [
-              "ascending",
-              "ascending"
-            ]
+            "field": ["TECHID", "DUMMYSTARTDATETIME"],
+            "order": ["ascending", "ascending"]
           },
-          "ops": [
-            "row_number"
-          ],
-          "as": [
-            "rank"
-          ]
+          "ops": ["row_number"],
+          "as": ["rank"]
         }
+      ]
+    },
+    {
+      "name": "AgentByDayProductivitySummary",
+      "source": "datafilter",
+      "transform": [
+        {"type": "filter", "expr": "datum['TOTALMINUTES'] != 0"},
+        {
+          "type": "aggregate",
+          "groupby": [
+            "TECHID",
+            "SHIFT",
+            "REPORTDATE",
+            "TESTERID",
+            "DUMMYSTARTDATETIME",
+            "DUMMYENDDATETIME"
+          ],
+          "fields": ["TOTALMINUTES", "STARTDATETIME", "ENDDATETIME", "rank"],
+          "ops": ["sum", "min", "max", "min"],
+          "as": ["total", "start", "end", "rank"]
+        },
+        {
+          "type": "window",
+          "sort": {
+            "field": ["ADIUser", "DUMMYSTARTDATETIME", "DUMMYENDDATETIME"],
+            "order": ["ascending", "ascending", "ascending"]
+          },
+          "fields": ["TECHID"],
+          "ops": ["row_number"],
+          "as": ["rownr"]
+        },
+        {
+          "type": "window",
+          "sort": {"field": ["TECHID"], "order": ["ascending"]},
+          "ops": ["rank"],
+          "as": ["idAgent"]
+        }
+       
       ]
     }
   ]
