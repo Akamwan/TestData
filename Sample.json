@@ -1,0 +1,66 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
+  "width": 200,
+  "height": 200,
+  "padding": 5,
+  "data": [
+    {
+      "name": "dataset",
+      "url": "https://raw.githubusercontent.com/Akamwan/TestData/main/testerData.csv",
+      "format": {"type": "csv"},
+      "transform": [
+        {"type": "filter", "expr": "datum.TECHID === '130363'"},
+        {"type": "formula", "as": "DUMMYSTARTDATETIME", "expr": "datum.STARTDATETIME"},
+        {"type": "formula", "as": "DUMMYENDDATETIME", "expr": "datum.ENDDATETIME"}
+      ]
+    },
+    {
+      "name": "datafilter",
+      "source": "dataset",
+      "transform": [
+        {
+          "type": "project",
+          "fields": [
+            "REPORTDATE",
+            "TESTERID",
+            "TECHID",
+            "EN_LEAD",
+            "STARTDATETIME",
+            "DUMMYSTARTDATETIME",
+            "ENDDATETIME",
+            "DUMMYENDDATETIME",
+            "STATUSREASON",
+            "CLOSE_BY",
+            "TOTALMINUTES",
+            "WAITMINUTES",
+            "HANDLERID"
+          ]
+        },
+        {
+          "type": "formula",
+          "as": "encodedDate",
+          "expr": "timeFormat(datum.REPORTDATE, '%m/%d/%y')"
+        },
+        {
+          "type": "window",
+          "sort": {
+            "field": [
+              "TECHID",
+              "DUMMYSTARTDATETIME"
+            ],
+            "order": [
+              "ascending",
+              "ascending"
+            ]
+          },
+          "ops": [
+            "row_number"
+          ],
+          "as": [
+            "rank"
+          ]
+        }
+      ]
+    }
+  ]
+}
