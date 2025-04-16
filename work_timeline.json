@@ -1,0 +1,1650 @@
+{
+  "autosize": "pad",
+  "layout": {
+    "padding": {
+      "signal": "columnPadding"
+    },
+    "bounds": "flush",
+    "align": "none"
+  },
+  "background": "white",
+  "padding": {
+    "left": 5,
+    "right": 5,
+    "top": 5,
+    "bottom": 5
+  },
+  "data": [
+    {
+      "name": "summaryTargets",
+      "values": [
+        {
+          "color": "#2C2DA5",
+          "targetRed": 19800,
+          "targetOrange": 21600
+        },
+        {
+          "color": "#09B800",
+          "targetRed": 6300,
+          "targetOrange": 5400
+        },
+        {
+          "color": "#B81500",
+          "targetRed": 4500,
+          "targetOrange": 3600
+        }
+      ]
+    },
+    {
+      "name": "dataset",
+      "transform": [
+        // {
+        //   "type": "filter",
+        //   "expr": "ShiftSelect === 'Day'?datum.SHIFT ==='B':datum.SHIFT === 'C'"
+        // },
+        {
+          "type": "formula",
+          "as": "encodedDate",
+          "expr": "timeFormat(datum['REPORTDATE'], '%m/%d/%y')"
+        },
+        {
+          "type": "window",
+          "sort": {
+            "field": [
+              "ADIUser",
+              "DUMMYSTARTDATETIME"
+            ],
+            "order": [
+              "ascending",
+              "ascending"
+            ]
+          },
+          "ops": [
+            "row_number"
+          ],
+          "as": [
+            "rank"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "datafilter",
+      "source": "dataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "(datum.rank >=1) &&(datum.rank < 10)"
+        }
+      ]
+    },
+    {
+      "name": "dataset-r",
+      "source": "dataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "(datum.rank>=scrollPosition)&&(datum.rank<(scrollPosition+rowsToDisplay))"
+        },
+        {
+          "type": "collect",
+          "sort": {
+            "field": "rank",
+            "order": "ascending"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AgentByDayProductivitySummary",
+      "source": "dataset-r",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum['TOTALMINUTES'] != 0"
+        },
+        {
+          "type": "aggregate",
+          "groupby": [
+            "ADIUser",
+            "SHIFT",
+            "REPORTDATE",
+            "TESTERID",
+            "DUMMYSTARTDATETIME",
+            "DUMMYENDDATETIME"
+          ],
+          "fields": [
+            "TOTALMINUTES",
+            "STARTDATETIME",
+            "ENDDATETIME",
+            "rank"
+          ],
+          "ops": [
+            "sum",
+            "min",
+            "max",
+            "min"
+          ],
+          "as": [
+            "total",
+            "start",
+            "end",
+            "rank"
+          ]
+        },
+        {
+          "type": "window",
+          "sort": {
+            "field": [
+              "ADIUser",
+              "DUMMYSTARTDATETIME",
+              "DUMMYENDDATETIME"
+            ],
+            "order": [
+              "ascending",
+              "ascending",
+              "ascending"
+            ]
+          },
+          "fields": [
+            "ADIUser"
+          ],
+          "ops": [
+            "row_number"
+          ],
+          "as": [
+            "rownr"
+          ]
+        },
+        {
+          "type": "window",
+          "sort": {
+            "field": [
+              "ADIUser"
+            ],
+            "order": [
+              "ascending"
+            ]
+          },
+          "ops": [
+            "rank"
+          ],
+          "as": [
+            "idAgent"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "AgentTimeLineLogs",
+      "source": "dataset-r",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum['TOTALMINUTES'] != 0"
+        },
+        {
+          "type": "window",
+          "sort": {
+            "field": [
+              "ADIUser",
+              "REPORTDATE",
+              "DUMMYSTARTDATETIME",
+              "DUMMYENDDATETIME"
+            ],
+            "order": [
+              "ascending",
+              "ascending",
+              "ascending",
+              "ascending"
+            ]
+          },
+          "ops": [
+            "dense_rank"
+          ],
+          "as": [
+            "rownr"
+          ]
+        },
+        {
+          "type": "formula",
+          "as": "encodedStart",
+          "expr": "datum['SHIFT'] =='C'?hours(datum['STARTDATETIME']) >=0 && hours(datum['STARTDATETIME']) <= 7?datetime(1900,0,2, hours(datum['STARTDATETIME']), minutes(datum['STARTDATETIME']), seconds(datum['STARTDATETIME']), 0):datetime(1900,0,1, hours(datum['STARTDATETIME']), minutes(datum['STARTDATETIME']), seconds(datum['STARTDATETIME']), 0):datetime(1900,0,1, hours(datum['STARTDATETIME']), minutes(datum['STARTDATETIME']), seconds(datum['STARTDATETIME']), 0)"
+        },
+        {
+          "type": "formula",
+          "as": "encodedEnd",
+          "expr": "datum['SHIFT'] =='C'?hours(datum['ENDDATETIME']) >=0 && hours(datum['ENDDATETIME']) <= 7?datetime(1900,0,2, hours(datum['ENDDATETIME']), minutes(datum['ENDDATETIME']), seconds(datum['ENDDATETIME']), 0):datetime(1900,0,1, hours(datum['ENDDATETIME']), minutes(datum['ENDDATETIME']), seconds(datum['ENDDATETIME']), 0):datetime(1900,0,1, hours(datum['ENDDATETIME']), minutes(datum['ENDDATETIME']), seconds(datum['ENDDATETIME']), 0)"
+        }
+      ]
+    },
+    {
+      "name": "15minutes",
+      "transform": [
+        {
+          "type": "sequence",
+          "start": {
+            "signal": "startHours*4"
+          },
+          "stop": {
+            "signal": "(endHours*4)"
+          },
+          "step": 1,
+          "as": "rank"
+        },
+        {
+          "type": "formula",
+          "expr": "timeOffset('minutes', datetime(1900,0,1) , datum.rank * 15)",
+          "as": "15mBlock"
+        }
+      ]
+    },
+    {
+      "name": "1hours",
+      "transform": [
+        {
+          "type": "sequence",
+          "start": {
+            "signal": "startHours"
+          },
+          "stop": {
+            "signal": "endHours"
+          },
+          "as": "sequence"
+        },
+        {
+          "type": "formula",
+          "expr": "timeOffset('hours', datetime(1900,0,1) , datum.sequence)",
+          "as": "1hBlock"
+        }
+      ]
+    },
+    {
+      "name": "statusSummaryLabels",
+      "source": "AgentTimeLineLogs",
+      "transform": [
+        {
+          "type": "window",
+          "sort": {
+            "field": [
+              "ADIUser",
+              "REPORTDATE",
+              "status"
+            ],
+            "order": [
+              "ascending"
+            ]
+          },
+          "ops": [
+            "row_number"
+          ],
+          "as": [
+            "statuscount"
+          ],
+          "groupby": [
+            "ADIUser",
+            "REPORTDATE",
+            "status"
+          ]
+        },
+        // {
+        //   "type": "filter",
+        //   "expr": "datum['status']count == 1"
+        // },
+        {
+          "type": "aggregate",
+          "groupby": [
+            "ADIUser",
+            "REPORTDATE",
+            "color",
+            "status"
+          ],
+          "fields": [
+            "status"
+          ],
+          "ops": [
+            "values"
+          ],
+          "as": [
+            "status"
+          ]
+        },
+        {
+          "type": "formula",
+          "as": "status",
+          "expr": "pluck(datum['status'], 'status')"
+        },
+        {
+          "type": "formula",
+          "as": "keyNameDateColor",
+          "expr": "datum['ADIUser']+datum['REPORTDATE']+datum['color']"
+        }
+      ]
+    },
+    {
+      "name": "statusColorSummary",
+      "source": "AgentTimeLineLogs",
+      "transform": [
+        {
+          "type": "aggregate",
+          "groupby": [
+            "ADIUser",
+            "REPORTDATE",
+            "DUMMYSTARTDATETIME",
+            "DUMMYENDDATETIME",
+            "TESTERID",
+            "color",
+            "status"
+          ],
+          "fields": [
+            "color",
+            "TOTALMINUTES"
+          ],
+          "ops": [
+            "count",
+            "sum"
+          ],
+          "as": [
+            "count",
+            "total"
+          ]
+        },
+        {
+          "type": "window",
+          //"groupby":["color"],
+          "sort": {
+            "field": [
+              "ADIUser",
+              //"SHIFT",
+              "REPORTDATE",
+              "DUMMYSTARTDATETIME",
+              "DUMMYENDDATETIME",
+              "TESTERID"
+            ],
+            "order": [
+              "ascending",
+              "ascending",
+              "ascending",
+              "ascending",
+              "ascending"
+            ]
+          },
+          "ops": [
+            "dense_rank"
+          ],
+          "as": [
+            "rownr"
+          ]
+        },
+        {
+          "type": "window",
+          "groupby": [
+            "ADIUser",
+            "REPORTDATE",
+            "color"
+            //"DUMMYSTARTDATETIME",
+            //"DUMMYENDDATETIME",
+            //"TESTERID",
+            //"REPORTDATE"
+          ],
+          "sort": {
+            "field": [
+              "ADIUser",
+              "REPORTDATE"
+            ],
+            "order": [
+              "ascending"
+            ]
+          },
+          "ops": [
+            "rank"
+          ],
+          "as": [
+            "idAgent"
+          ]
+        },
+        {
+          "type": "formula",
+          "as": "keyNameDateColor",
+          "expr": "datum['ADIUser']+datum['REPORTDATE']+datum['color']"
+        },
+        {
+          "type": "lookup",
+          "from": "summaryTargets",
+          "key": "color",
+          "fields": [
+            "color"
+          ],
+          "values": [
+            "targetRed",
+            "targetOrange"
+          ],
+          "as": [
+            "targetRed",
+            "targetOrange"
+          ]
+        },
+        {
+          "type": "lookup",
+          "from": "statusSummaryLabels",
+          "key": "keyNameDateColor",
+          "fields": [
+            "keyNameDateColor"
+          ],
+          "values": [
+            "status"
+          ],
+          "as": [
+            "statusList"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "statusColors",
+      "source": "AgentTimeLineLogs",
+      "transform": [
+        {
+          "type": "aggregate",
+          "groupby": [
+            "color"
+          ],
+          "fields": [
+            "color",
+            "TOTALMINUTES"
+          ],
+          "ops": [
+            "count",
+            "sum"
+          ],
+          "as": [
+            "count",
+            "total"
+          ]
+        },
+        {
+          "type": "collect",
+          "sort": {
+            "field": "total",
+            "order": "descending"
+          }
+        },
+        {
+          "type": "window",
+          "ops": [
+            "dense_rank"
+          ],
+          "as": [
+            "sequence"
+          ]
+        },
+        {
+          "type": "lookup",
+          "from": "summaryTargets",
+          "key": "color",
+          "fields": [
+            "color"
+          ],
+          "values": [
+            "targetRed",
+            "targetOrange"
+          ],
+          "as": [
+            "targetRed",
+            "targetOrange"
+          ]
+        }
+      ]
+    }
+  ],
+  "signals": [
+    //debug
+    {
+      "name": "scrollBarHeight",
+      "description": "Scrollbar height: Dynamically calculated based on the percentage of visible rows out of all data rows, with a range limited to minimum and maximum values",
+      "init": "clamp((rowHeight*rowsToDisplay)*rowsToDisplay/length(data('dataset')),30,600)"
+    },
+    ///////
+    {
+      "name": "y_step",
+      "value": 20
+    },
+    {
+      "name": "x_step",
+      "value": 10
+    },
+    {
+      "name": "yPaddingInner",
+      "value": 0.45
+    },
+    {
+      "name": "yPaddingOuter",
+      "value": 0.2
+    },
+    {
+      "name": "agentColumn",
+      "value": 100
+    },
+    {
+      "name": "mcColumn",
+      "value": 50
+    },
+    {
+      "name": "dateColumn",
+      "value": 35
+    },
+    {
+      "name": "startColumn",
+      "value": 25
+    },
+    {
+      "name": "endColumn",
+      "value": 35
+    },
+    {
+      "name": "productivityColumn",
+      "value": 80
+    },
+    {
+      "name": "summaryColumn",
+      "value": 120
+    },
+    {
+      "name": "columnPadding",
+      "value": 10
+    },
+    {
+      "name": "height",
+      "update": "bandspace(domain('y').length, yPaddingInner, yPaddingOuter) * y_step"
+    },
+    {
+      "name": "timelineWidth",
+      "update": "(totalHours*4) * x_step"
+    },
+    {
+      "name": "width",
+      "update": "100"
+    },
+    {
+      "name": "targetProductivityGreen",
+      "value": 85
+    },
+    {
+      "name": "ProductivityGreenStroke",
+      "value": "#c6ecb5"
+    },
+    {
+      "name": "ProductivityGreenFill",
+      "value": "#6F927C"
+    },
+    {
+      "name": "targetProductivityOrange",
+      "value": 80
+    },
+    {
+      "name": "ProductivityOrangeStroke",
+      "value": "#ebd5ad"
+    },
+    {
+      "name": "ProductivityOrangeFill",
+      "value": "#F67E13"
+    },
+    {
+      "name": "ProductivityRedStroke",
+      "value": "#fa8d88"
+    },
+    {
+      "name": "ProductivityRedFill",
+      "value": "#AF0000"
+    },
+    {
+      "name": "ShiftSelect",
+      "value": "Day",
+      "bind": {
+        "input": "radio",
+        "options": [
+          "Day",
+          "Night"
+        ],
+        "name": "Start Hours"
+      }
+    },
+    {
+      "name": "startHour",
+      "value": 7
+    },
+    {
+      "name": "endHour",
+      "value": 19
+    },
+    {
+      "name": "startHours",
+      "value": 7, // Default value for startHour
+      "update": "data('dataset')[0].SHIFT === 'C' ? 19 : startHour"
+    },
+    {
+      "name": "endHours",
+      "value": 19, // Default value for startHour
+      "update": "data('dataset')[0].SHIFT === 'C' ? 31 : endHour"
+    },
+    {
+      "name": "totalHours",
+      "value": 13
+    },
+    //debug
+    {
+      "name": "rowsToDisplay",
+      "description": "The number of rows displayed in the table (visible without scrolling)",
+      "value": 50
+    },
+    {
+      "name": "scrollPositionMax",
+      "update": "length(data('dataset'))-rowsToDisplay"
+    },
+    {
+      "name": "scrollbarMouseDragY",
+      "init": "0",
+      "on": [
+        {
+          "events": "[@rect-scrollbar:pointerdown, window:pointerup] > window:pointermove",
+          "update": "clamp(y(),1,scrollAreaHeight)"
+        }
+      ]
+    },
+    {
+      "name": "rowHeight",
+      "description": "Row height in pixels",
+      "value": 10
+    },
+    {
+      "name": "scrollAreaHeight",
+      "description": "Scroll area height in pixels",
+      "update": "rowHeight*rowsToDisplay"
+      //"value":0
+    },
+    {
+      "name": "scrollPosition",
+      "description": "Scrollbar Position: The scrollbar responds to dragging the scrollbar with a mouse, mouse wheel scrolling, and the Home, End, Page Up, Page Down, Arrow Up, and Arrow Down buttons",
+      "value": 1,
+      "on": [
+        {
+          "events": {
+            "type": "wheel",
+            "consume": true
+          },
+          "update": "clamp(round(scrollPosition+event.deltaY/abs(event.deltaY)*pow(1.0001, event.deltaY*pow(16, event.deltaMode)),0),1,scrollPositionMax)"
+        },
+        {
+          "events": "window:keydown",
+          "update": "event.code=='Home'?1:event.code=='End'?scrollPositionMax:scrollPosition"
+        },
+        {
+          "events": "window:keydown",
+          "update": "clamp(event.code=='PageDown'?(scrollPosition+rowsToDisplay):event.code=='PageUp'?(scrollPosition-rowsToDisplay):scrollPosition,1,scrollPositionMax)"
+        },
+        {
+          "events": "window:keydown",
+          "update": "clamp(event.code=='ArrowDown'?(scrollPosition+1):event.code=='ArrowUp'?(scrollPosition-1):scrollPosition,1,scrollPositionMax)"
+        },
+        {
+          "events": "[@rect-scrollbar:pointerdown, window:pointerup] > window:pointermove",
+          "update": "clamp(round(invert('scaleScrollBarY',scrollbarMouseDragY),0),1,scrollPositionMax)"
+        }
+      ]
+    },
+    {
+      "name": "scrollBarWidth",
+      "description": "Scrollbar width in pixels",
+      "init": "12"
+    },
+    {
+      "name": "scrollbarFillOpacity",
+      "value": 0.2,
+      "on": [
+        {
+          "events": "view:pointerover",
+          "update": "0.4"
+        },
+        {
+          "events": "view:pointerout",
+          "update": "0.2"
+        }
+      ]
+    }
+  ],
+  "marks": [
+    {
+      "type": "group",
+      "name": "agentColumn",
+      "style": "cell",
+      "title": {
+        "text": "Techname",
+        "anchor": "start",
+        "frame": "group",
+        "align": "left",
+        "color": "#666666"
+      },
+      "encode": {
+        "update": {
+          "width": {
+            "signal": "agentColumn"
+          },
+          "height": {
+            "signal": "height"
+          }
+        },
+        "sort": {
+          "field": "datum.rank"
+        }
+      },
+      "marks": [
+        {
+          "name": "rule-scrolltrack-1",
+          "type": "rule",
+          "encode": {
+            "update": {
+              "x": {
+                "signal": "(pbiContainerWidth-10)-scrollBarWidth-2"
+              },
+              "x2": {
+                "signal": "(pbiContainerWidth-10)-scrollBarWidth-2"
+              },
+              "y": {
+                "signal": "0"
+              },
+              "y2": {
+                "signal": "scrollAreaHeight"
+              },
+              "stroke": {
+                "signal": "'black'"
+              },
+              "strokeWidth": {
+                "signal": "0.2"
+              }
+            }
+          }
+        },
+        {
+          "name": "rule-scrolltrack-2",
+          "type": "rule",
+          "encode": {
+            "update": {
+              "x": {
+                "signal": "(pbiContainerWidth-10)"
+              },
+              "x2": {
+                "signal": "(pbiContainerWidth-10)"
+              },
+              "y": {
+                "signal": "0"
+              },
+              "y2": {
+                "signal": "scrollAreaHeight"
+              },
+              "stroke": {
+                "signal": "'black'"
+              },
+              "strokeWidth": {
+                "signal": "0.2"
+              }
+            }
+          }
+        },
+        {
+          "name": "rect-scrollbar",
+          "type": "rect",
+          "encode": {
+            "update": {
+              "x": {
+                "signal": "(pbiContainerWidth-10)-scrollBarWidth-1"
+              },
+              "y": {
+                "scale": "scaleScrollBarY",
+                "signal": "scrollPosition"
+              },
+              "width": {
+                "signal": "scrollBarWidth"
+              },
+              "height": {
+                "signal": "scrollBarHeight"
+              },
+              "fill": {
+                "value": "#666666"
+              },
+              "fillOpacity": {
+                "signal": "scrollbarFillOpacity"
+              }
+            }
+          }
+        },
+        {
+          "type": "text",
+          "style": "col",
+          "from": {
+            "data": "AgentByDayProductivitySummary"
+          },
+          "encode": {
+            "update": {
+              "align": {
+                "value": "left"
+              },
+              "y": {
+                "signal": "scale('y',datum.rownr)+bandwidth('y')/2"
+              },
+              "text": {
+                "signal": "datum.rownr == datum.idAgent ? datum['ADIUser'] : ''"
+              },
+              "fontWeight": {
+                "signal": "'bold'"
+              },
+              "baseline": {
+                "value": "middle"
+              },
+              "limit": {
+                "signal": "agentColumn"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "mcColumn",
+      "style": "cell",
+      "title": {
+        "text": "TesterID",
+        "anchor": "start",
+        "frame": "group",
+        "align": "left",
+        "color": "#666666"
+      },
+      "encode": {
+        "update": {
+          "width": {
+            "signal": "mcColumn"
+          },
+          "height": {
+            "signal": "height"
+          }
+        }
+      },
+      "marks": [
+        {
+          "type": "text",
+          "style": "col",
+          "from": {
+            "data": "AgentByDayProductivitySummary"
+          },
+          "encode": {
+            "update": {
+              "align": {
+                "value": "right"
+              },
+              "x": {
+                "signal": "mcColumn"
+              },
+              "y": {
+                "signal": "scale('y',datum.rownr)+bandwidth('y')/2"
+              },
+              "text": {
+                "signal": "datum.total != 0?datum['TESTERID']:''"
+              },
+              "baseline": {
+                "value": "middle"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "dateColumn",
+      "style": "cell",
+      "title": {
+        "text": "Date",
+        "anchor": "start",
+        "frame": "group",
+        "align": "left",
+        "color": "#666666"
+      },
+      "encode": {
+        "update": {
+          "width": {
+            "signal": "dateColumn"
+          },
+          "height": {
+            "signal": "height"
+          }
+        }
+      },
+      "marks": [
+        {
+          "type": "text",
+          "style": "col",
+          "from": {
+            "data": "AgentByDayProductivitySummary"
+          },
+          "encode": {
+            "update": {
+              "align": {
+                "value": "right"
+              },
+              "x": {
+                "signal": "dateColumn"
+              },
+              "y": {
+                "signal": "scale('y',datum.rownr)+bandwidth('y')/2"
+              },
+              "text": {
+                "signal": "datum.total != 0?timeFormat(toDate(datum['DUMMYSTARTDATETIME']),'%m/%d/%y'):''"
+              },
+              "baseline": {
+                "value": "middle"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "startColumn",
+      "style": "cell",
+      "title": {
+        "text": "Start",
+        "anchor": "end",
+        "frame": "group",
+        "align": "right",
+        "color": "#666666"
+      },
+      "encode": {
+        "update": {
+          "width": {
+            "signal": "startColumn"
+          },
+          "height": {
+            "signal": "height"
+          }
+        }
+      },
+      "marks": [
+        {
+          "type": "text",
+          "style": "col",
+          "from": {
+            "data": "AgentByDayProductivitySummary"
+          },
+          "encode": {
+            "update": {
+              "align": {
+                "value": "right"
+              },
+              "x": {
+                "signal": "startColumn"
+              },
+              "y": {
+                "signal": "scale('y',datum.rownr)+bandwidth('y')/2"
+              },
+              "text": {
+                "signal": "datum.total != 0?timeFormat(toDate(datum['DUMMYSTARTDATETIME']),'%-H:%M'):''"
+              },
+              "baseline": {
+                "value": "middle"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "endColumn",
+      "style": "cell",
+      "title": {
+        "text": "End",
+        "anchor": "end",
+        "frame": "group",
+        "align": "right",
+        "color": "#666666"
+      },
+      "encode": {
+        "update": {
+          "width": {
+            "signal": "endColumn"
+          },
+          "height": {
+            "signal": "height"
+          }
+        }
+      },
+      "marks": [
+        {
+          "type": "text",
+          "style": "col",
+          "from": {
+            "data": "AgentByDayProductivitySummary"
+          },
+          "encode": {
+            "update": {
+              "align": {
+                "value": "right"
+              },
+              "x": {
+                "signal": "endColumn"
+              },
+              "y": {
+                "signal": "scale('y',datum.rownr)+bandwidth('y')/2"
+              },
+              "text": {
+                "signal": "datum.total != 0?timeFormat(toDate(datum['DUMMYENDDATETIME']),'%-H:%M'):''"
+              },
+              "baseline": {
+                "value": "middle"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "timeline",
+      "encode": {
+        "update": {
+          "width": {
+            "signal": "timelineWidth"
+          },
+          "height": {
+            "signal": "height"
+          }
+        }
+      },
+      "marks": [
+        {
+          "type": "rect",
+          "description": "Hour alternating shading",
+          "name": "hourShading",
+          "from": {
+            "data": "1hours"
+          },
+          "encode": {
+            "update": {
+              "x": {
+                "field": "1hBlock",
+                "scale": "xTimeScale"
+              },
+              "width": {
+                "signal": "timelineWidth / totalHours"
+              },
+              "y": {
+                "value": -15
+              },
+              "height": {
+                "signal": "height"
+              },
+              "strokeWidth": {
+                "signal": "1"
+              },
+              "stroke": {
+                "value": "#f1f1f1"
+              },
+              "fill": {
+                "value": "#f1f1f1"
+              },
+              "opacity": {
+                "signal": "datum.sequence % 1 == 0 ? 0 : 1"
+              }
+            }
+          }
+        },
+        {
+          "name": "agentlogBars",
+          "description": "The main agentlogs bars on the timeline",
+          "type": "rect",
+          "clip": true,
+          "from": {
+            "data": "AgentTimeLineLogs"
+          },
+          "encode": {
+            "update": {
+              "x": {
+                "scale": "xTimeScale",
+                "field": "encodedStart"
+              },
+              "x2": {
+                "scale": "xTimeScale",
+                "field": "encodedEnd"
+              },
+              "y": {
+                "scale": "y",
+                "field": "rownr"
+              },
+              "height": {
+                "signal": "bandwidth('y')"
+              },
+              "tooltip": {
+                "signal": "{'TesterID':datum['TESTERID'],'Status':datum['status'] , 'Start':timeFormat(datum['STARTDATETIME'],'%m/%d/%y %-H:%M:%S' ),'End':timeFormat(datum['ENDDATETIME'],'%m/%d/%y %-H:%M:%S' ),'Total':datum['TOTALMINUTES']}"
+              },
+              "fill": {
+                "signal": "datum['color']"
+              },
+              "strokeWidth": {
+                "value": 1
+              },
+              "zindex": {
+                "value": 2
+              }
+            }
+          }
+        }
+      ],
+      "axes": [
+        {
+          "description": "15mblock Time axis",
+          "ticks": true,
+          "labelPadding": 0,
+          "scale": "xTimeScale",
+          "tickSize": 15,
+          "labelFontSize": 8,
+          "tickCount": {
+            "signal": "(totalHours)*4"
+          },
+          "orient": "top",
+          "bandPosition": 1,
+          "grid": false,
+          "zindex": 1,
+          "encode": {
+            "ticks": {
+              "update": {
+                "strokeOpacity": [
+                  {
+                    "test": "timeFormat(datum.value, '%M')   != '30'",
+                    "value": 1
+                  },
+                  {
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "labels": {
+              "update": {
+                "align": {
+                  "value": "center"
+                },
+                "text": [
+                  {
+                    "signal": "timeFormat(datum.value, '%M')"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        // {
+        //   "description": "15mblock Time axis bottom",
+        //   "ticks": true,
+        //   "labelPadding": 1,
+        //   "scale": "xTimeScale",
+        //   "offset": -2,
+        //   "tickSize": 15,
+        //   "tickCount": {
+        //     "signal": "(totalHours) * 4"
+        //   },
+        //   "orient": "bottom",
+        //   "bandPosition": 1,
+        //   "grid": false,
+        //   "zindex": 1,
+        //   "encode": {
+        //     "ticks": {
+        //       "update": {
+        //         "strokeOpacity": [
+        //           {
+        //             "test": "timeFormat(datum.value, '%M')   != '30'",
+        //             "value": 1
+        //           },
+        //           {
+        //             "value": 0
+        //           }
+        //         ]
+        //       }
+        //     },
+        //     "labels": {
+        //       "update": {
+        //         "align": {
+        //           "value": "center"
+        //         },
+        //         "text": [
+        //           {
+        //             "signal": "timeFormat(datum.value, '%M')"
+        //           }
+        //         ]
+        //       }
+        //     }
+        //   }
+        // },
+        {
+          "description": "1hour Time axis top",
+          "scale": "xTimeScale",
+          "domain": false,
+          "orient": "top",
+          "offset": 0,
+          "tickCount": {
+            "signal": "totalHours"
+          },
+          "tickSize": -2.5,
+          "labelFontSize": 10,
+          "grid": false,
+          "ticks": false,
+          "tickExtra": true,
+          "labelOffset": {
+            "signal": "(timelineWidth / totalHours) / 2"
+          },
+          "zindex": 1,
+          "encode": {
+            "grid": {
+              "update":{
+                "y":{"signal": "0"},
+                "y2":{"signal": "height"}
+              }
+            },
+            "labels": {
+              "update": {
+                "text": [
+                  {
+                    "test": "timeFormat(datum.value, '%M')== '00' && (timeFormat(datum.value, '%H') != 7)&& data('dataset')[0].SHIFT === 'C'||timeFormat(datum.value, '%M')== '00' && (timeFormat(datum.value, '%H') != 19)&& data('dataset')[0].SHIFT === 'B'",
+                    "signal": "hours(datum.value)"
+                  },
+                  {
+                    "value": ""
+                  }
+                ]
+              }
+            }
+          }
+        }
+        ,
+        // {
+        //   "description": "1hour Time axis bottom",
+        //   "scale": "xTimeScale",
+        //   "domain": false,
+        //   "orient": "bottom",
+        //   "offset": 3,
+        //   "tickCount": {
+        //     "signal": "totalHours"
+        //   },
+        //   "tickSize": -5,
+        //   "labelFontSize": 12,
+        //   "grid": true,
+        //   "ticks": true,
+        //   "tickExtra": true,
+        //   "labelOffset": {
+        //     "signal": "(timelineWidth / totalHours) / 2"
+        //   },
+        //   "zindex": 1,
+        //   "encode": {
+        //     "labels": {
+        //       "update": {
+        //         "text": [
+        //           {
+        //             "test": "timeFormat(datum.value, '%M')   == '00' && (timeFormat(datum.value, '%H') != endHour)",
+        //             "signal": "hours(datum.value)"
+        //           },
+        //           {
+        //             "value": ""
+        //           }
+        //         ]
+        //       }
+        //     }
+        //   }
+        // },
+        {
+          "scale": "y",
+          "orient": "left",
+          "encode": {
+            "ticks": {
+              "update": {
+                "x2": {
+                  "signal": "-agentColumn-startColumn-endColumn-productivityColumn-(columnPadding*5)"
+                }
+              }
+            }
+          },
+          "tickColor": "#f1f1f1",
+          "bandPosition": 1.5,
+          "labels": false,
+          "title": "",
+          "ticks": true,
+          "zindex": 0
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "summaryColumn",
+      "style": "cell",
+      "title": {
+        "text": "",
+        "anchor": "start",
+        "frame": "group",
+        "align": "left",
+        "color": "#666666"
+      },
+      "encode": {
+        "update": {
+          "width": {
+            "signal": "summaryColumn"
+          },
+          "height": {
+            "signal": "height"
+          }
+        }
+      },
+      "marks": [
+        {
+          "type": "text",
+          "style": "col",
+          "zindex": 2,
+          "from": {
+            "data": "statusColorSummary"
+          },
+          "encode": {
+            "update": {
+              "tooltip": {
+                //"signal": "join(datum['statusList'], ', ')"
+                "signal": ""
+              },
+              "align": {
+                "value": "center"
+              },
+              "x": {
+                "signal": "scale('xSummaryScale', datum['color'])+bandwidth('xSummaryScale')/2"
+              },
+              "y": {
+                "signal": "scale('y',datum.rownr)+bandwidth('y')/2+2"
+              },
+              "text": {
+                "signal": "format(datum['total'],'.2f')"
+              },
+              // "text": {
+              //   "signal": "datum.rownr == datum.idAgent ? format(datum['total'],'.2f') : 0"
+              // },
+              "fill": [
+                {
+                  "test": "(datum.targetRed < datum.targetOrange && datum.total < datum.targetRed) || (datum.targetRed > datum.targetOrange && datum.total > datum.targetRed)",
+                  "value": "#e62600"
+                },
+                {
+                  "test": "(datum.targetRed < datum.targetOrange && datum.total < datum.targetOrange) || (datum.targetRed > datum.targetOrange && datum.total > datum.targetOrange)",
+                  "value": "#ff7c0a"
+                },
+                {
+                  "value": "#605E5C"
+                }
+              ],
+              "baseline": {
+                "value": "middle"
+              }
+            }
+          }
+        }
+        // ,
+        // {
+        //   "type": "rect",
+        //   "description": "Status colors summary alternating shading",
+        //   "name": "statusSummaryShading",
+        //   "from": {
+        //     "data": "statusColors"
+        //   },
+        //   "encode": {
+        //     "update": {
+        //       "x": {
+        //         "field": "color",
+        //         "scale": "xSummaryScale"
+        //       },
+        //       "width": {
+        //         "signal": "bandwidth('xSummaryScale')"
+        //       },
+        //       "y": {
+        //         "value": -15
+        //       },
+        //       "height": {
+        //         "signal": "height+30"
+        //       },
+        //       "strokeWidth": {
+        //         "signal": "1"
+        //       },
+        //       "stroke": {
+        //         "value": "#f1f1f1"
+        //       },
+        //       "fill": {
+        //         "value": "#f1f1f1"
+        //       },
+        //       "opacity": {
+        //         "signal": "datum.sequence % 2 == 1 ? 0 : 1"
+        //       }
+        //     }
+        //   }
+        // }
+      ],
+      "axes": [
+        {
+          "description": "Status Colors Summary Time axis",
+          "ticks": true,
+          "labelPadding": 0,
+          "scale": "xSummaryScale",
+          "tickSize": 15,
+          "orient": "top",
+          "bandPosition": 0.5,
+          "grid": false,
+          "zindex": 1,
+          "encode": {
+            "labels": {
+              "update": {
+                "align": {
+                  "value": "center"
+                },
+                "fill": {
+                  "signal": "datum.value"
+                },
+                "text": [
+                  {
+                    "value": "▉"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        // {
+        //   "description": "Status Colors Summary Time axis bottom",
+        //   "ticks": true,
+        //   "labelPadding": 0,
+        //   "scale": "xSummaryScale",
+        //   "tickSize": 19,
+        //   "offset": -2,
+        //   "orient": "bottom",
+        //   "bandPosition": 0.5,
+        //   "grid": false,
+        //   "zindex": 1,
+        //   "encode": {
+        //     "labels": {
+        //       "update": {
+        //         "align": {
+        //           "value": "center"
+        //         },
+        //         "fill": {
+        //           "signal": "datum.value"
+        //         },
+        //         "text": {
+        //           "value": "▉"
+        //         }
+        //       }
+        //     }
+        //   }
+        // },
+        {
+          "description": "Status Colors Summary Time axis grid",
+          "ticks": false,
+          "scale": "xSummaryScale",
+          "orient": "top",
+          "bandPosition": 1,
+          "labels": false,
+          "grid": false,
+          "tickExtra": true,
+          "encode": {
+            "grid": {
+              "update": {
+                "y": {
+                  "signal": "-15"
+                },
+                "y2": {
+                  "signal": "height"
+                }
+              }
+            }
+          },
+          "zindex": 3
+        },
+        {
+          "scale": "y",
+          "orient": "left",
+          "encode": {
+            "ticks": {
+              "update": {
+                "x2": {
+                  "signal": "summaryColumn"
+                }
+              }
+            }
+          },
+          "tickColor": "#f1f1f1",
+          "bandPosition": 1.5,
+          "labels": false,
+          "title": "",
+          "ticks": true,
+          "tickExtra": false,
+          "zindex": 0
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "scaleY",
+      "type": "band",
+      "domain": {
+        "data": "dataset",
+        "field": "id",
+        "sort": true
+      },
+      "range": [
+        {
+          "signal": "0"
+        },
+        {
+          "signal": "rowHeight*length(data('dataset'))"
+        }
+      ]
+    },
+    {
+      "name": "scaleScrollBarY",
+      "type": "linear",
+      "domain": [
+        1,
+        {
+          "signal": "scrollPositionMax"
+        }
+      ],
+      "range": [
+        {
+          "signal": "0"
+        },
+        {
+          "signal": "rowHeight*rowsToDisplay-scrollBarHeight-1"
+        }
+      ]
+    },
+    {
+      "name": "scaleRowStripeColors",
+      "type": "ordinal",
+      "domain": [
+        0,
+        1
+      ],
+      "range": [
+        "#FFFFFF",
+        "#EAEAEA"
+      ]
+    },
+    {
+      "name": "xTimeScale",
+      "type": "time",
+      "domain": {
+        "data": "15minutes",
+        "fields": [
+          "15mBlock"
+        ]
+      },
+      "range": {
+        "signal": "[0,timelineWidth]"
+      }
+    },
+    {
+      "name": "xTimeHourScale",
+      "type": "time",
+      "domain": {
+        "data": "1hours",
+        "fields": [
+          "1hBlock"
+        ]
+      },
+      "range": {
+        "signal": "[0,timelineWidth]"
+      }
+    },
+    {
+      "name": "xSummaryScale",
+      "type": "band",
+      "domain": {
+        "data": "statusColors",
+        "fields": [
+          "color"
+        ]
+      },
+      "range": {
+        "signal": "[0,summaryColumn]"
+      }
+    },
+    {
+      "name": "y",
+      "type": "band",
+      "domain": {
+        "fields": [
+          {
+            "data": "AgentByDayProductivitySummary",
+            "field": "rownr"
+          }
+        ],
+        "sort": {
+          "op": "min",
+          "field": "rownr",
+          "order": "ascending"
+        }
+      },
+      "range": {
+        "step": {
+          "signal": "y_step"
+        }
+      },
+      "paddingInner": {
+        "signal": "yPaddingInner"
+      },
+      "paddingOuter": {
+        "signal": "yPaddingOuter"
+      }
+    }
+  ]
+}
