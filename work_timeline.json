@@ -71,6 +71,18 @@
       ]
     },
     {
+      "name":"datamaxdate",
+      "source":"dataset",
+      "transform": [
+        {
+          "type": "aggregate",
+          "ops": ["max"],
+          "fields": ["REPORTDATE"],
+          "as": ["maxReportDate"]
+        }
+      ]
+    },
+    {
       "name": "dataset-r",
       "source": "dataset",
       "transform": [
@@ -219,7 +231,7 @@
             "signal": "startHours*4"
           },
           "stop": {
-            "signal": "(endHours*4)"
+            "signal": "(endHours*4)+1"
           },
           "step": 1,
           "as": "rank"
@@ -589,6 +601,7 @@
       "name": "ProductivityRedFill",
       "value": "#AF0000"
     },
+    /// input
     {
       "name": "ShiftSelect",
       "value": "Day",
@@ -601,6 +614,26 @@
         "name": "Start Hours"
       }
     },
+    {
+      "name": "startDate",
+      "value": "2025-01-01",
+      "bind": {
+        "input": "date",
+        "name": "Start Date"
+      },
+      "on": [
+        {
+          "events": "window:load",
+          "update": "timeFormat(data('datamaxdate')[0].maxReportDate, '%Y-%m-%d')"
+        }
+      ]
+    },
+   {
+     "name": "debug",
+     "update": "timeFormat(data('datamaxdate')[0].maxReportDate, '%m/%d/%Y')"
+      
+    },
+    /////
     {
       "name": "startHour",
       "value": 7
