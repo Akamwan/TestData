@@ -1,0 +1,41 @@
+{
+ 
+  
+    "view": {
+      "stroke": "transparent"
+    },
+    "style": {
+       ".deneb-container": { // Or .deneb-container
+        "display": "flex",
+        "flex-direction": "column",
+        "align-items": "flex-start",
+        "background": "red"
+      },
+      "col": {
+        "fontSize": 10
+      },
+      "cell": {
+        "strokeWidth": {
+          "signal": "0"
+        }
+      }
+    },
+    "font": "Arial",
+    "text": {
+      "font": "Arial",
+      "fontSize": 10,
+      "fill": "#666666"
+    },
+    "axis": {
+      "labelColor": "#666666",
+      "labelFontSize": 10,
+      "titleFont": "arial",
+      "titleColor": "#252423",
+      "titleFontSize": 16,
+      "titleFontWeight": "normal"
+    },
+    "axisY": {
+      "labelPadding": 10
+    }
+  
+}
