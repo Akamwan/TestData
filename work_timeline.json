@@ -3,9 +3,11 @@
   "layout": {
     "padding": {
       "signal": "columnPadding"
+      
     },
     "bounds": "flush",
     "align": "none"
+    
   },
   "background": "white",
   "padding": {
@@ -38,10 +40,10 @@
     {
       "name": "dataset",
       "transform": [
-        // {
-        //   "type": "filter",
-        //   "expr": "ShiftSelect === 'Day'?datum.SHIFT ==='B':datum.SHIFT === 'C'"
-        // },
+        {
+          "type": "filter",
+          "expr": "ShiftSelect === 'Day'?datum.SHIFT ==='B':datum.SHIFT === 'C'"
+        },
         {
           "type": "formula",
           "as": "encodedDate",
@@ -65,16 +67,6 @@
           "as": [
             "rank"
           ]
-        }
-      ]
-    },
-    {
-      "name": "datafilter",
-      "source": "dataset",
-      "transform": [
-        {
-          "type": "filter",
-          "expr": "(datum.rank >=1) &&(datum.rank < 10)"
         }
       ]
     },
@@ -620,12 +612,12 @@
     {
       "name": "startHours",
       "value": 7, // Default value for startHour
-      "update": "data('dataset')[0].SHIFT === 'C' ? 19 : startHour"
+      "update": "ShiftSelect === 'Night' ? 19 : startHour"
     },
     {
       "name": "endHours",
       "value": 19, // Default value for startHour
-      "update": "data('dataset')[0].SHIFT === 'C' ? 31 : endHour"
+      "update": "ShiftSelect === 'Night' ? 31 : endHour"
     },
     {
       "name": "totalHours",
@@ -660,7 +652,6 @@
       "name": "scrollAreaHeight",
       "description": "Scroll area height in pixels",
       "update": "rowHeight*rowsToDisplay"
-      //"value":0
     },
     {
       "name": "scrollPosition",
@@ -712,6 +703,8 @@
       ]
     }
   ],
+
+
   "marks": [
     {
       "type": "group",
@@ -1082,7 +1075,7 @@
                 "value": -15
               },
               "height": {
-                "signal": "height"
+                "signal": "height+30"
               },
               "strokeWidth": {
                 "signal": "1"
@@ -1146,7 +1139,7 @@
           "ticks": true,
           "labelPadding": 0,
           "scale": "xTimeScale",
-          "tickSize": 15,
+          "tickSize": 10,
           "labelFontSize": 8,
           "tickCount": {
             "signal": "(totalHours)*4"
@@ -1154,7 +1147,7 @@
           "orient": "top",
           "bandPosition": 1,
           "grid": false,
-          "zindex": 1,
+          "zindex": 2,
           "encode": {
             "ticks": {
               "update": {
@@ -1236,25 +1229,19 @@
           },
           "tickSize": -2.5,
           "labelFontSize": 10,
-          "grid": false,
-          "ticks": false,
+          "grid": true,
+          "ticks": true,
           "tickExtra": true,
           "labelOffset": {
             "signal": "(timelineWidth / totalHours) / 2"
           },
           "zindex": 1,
           "encode": {
-            "grid": {
-              "update":{
-                "y":{"signal": "0"},
-                "y2":{"signal": "height"}
-              }
-            },
             "labels": {
               "update": {
                 "text": [
                   {
-                    "test": "timeFormat(datum.value, '%M')== '00' && (timeFormat(datum.value, '%H') != 7)&& data('dataset')[0].SHIFT === 'C'||timeFormat(datum.value, '%M')== '00' && (timeFormat(datum.value, '%H') != 19)&& data('dataset')[0].SHIFT === 'B'",
+                    "test": "timeFormat(datum.value, '%M')== '00' && (timeFormat(datum.value, '%H') != 7)&& ShiftSelect === 'Night'||timeFormat(datum.value, '%M')== '00' && (timeFormat(datum.value, '%H') != 19)&& ShiftSelect === 'Day'",
                     "signal": "hours(datum.value)"
                   },
                   {
@@ -1264,42 +1251,8 @@
               }
             }
           }
-        }
-        ,
-        // {
-        //   "description": "1hour Time axis bottom",
-        //   "scale": "xTimeScale",
-        //   "domain": false,
-        //   "orient": "bottom",
-        //   "offset": 3,
-        //   "tickCount": {
-        //     "signal": "totalHours"
-        //   },
-        //   "tickSize": -5,
-        //   "labelFontSize": 12,
-        //   "grid": true,
-        //   "ticks": true,
-        //   "tickExtra": true,
-        //   "labelOffset": {
-        //     "signal": "(timelineWidth / totalHours) / 2"
-        //   },
-        //   "zindex": 1,
-        //   "encode": {
-        //     "labels": {
-        //       "update": {
-        //         "text": [
-        //           {
-        //             "test": "timeFormat(datum.value, '%M')   == '00' && (timeFormat(datum.value, '%H') != endHour)",
-        //             "signal": "hours(datum.value)"
-        //           },
-        //           {
-        //             "value": ""
-        //           }
-        //         ]
-        //       }
-        //     }
-        //   }
-        // },
+        },
+        
         {
           "scale": "y",
           "orient": "left",
@@ -1390,44 +1343,7 @@
             }
           }
         }
-        // ,
-        // {
-        //   "type": "rect",
-        //   "description": "Status colors summary alternating shading",
-        //   "name": "statusSummaryShading",
-        //   "from": {
-        //     "data": "statusColors"
-        //   },
-        //   "encode": {
-        //     "update": {
-        //       "x": {
-        //         "field": "color",
-        //         "scale": "xSummaryScale"
-        //       },
-        //       "width": {
-        //         "signal": "bandwidth('xSummaryScale')"
-        //       },
-        //       "y": {
-        //         "value": -15
-        //       },
-        //       "height": {
-        //         "signal": "height+30"
-        //       },
-        //       "strokeWidth": {
-        //         "signal": "1"
-        //       },
-        //       "stroke": {
-        //         "value": "#f1f1f1"
-        //       },
-        //       "fill": {
-        //         "value": "#f1f1f1"
-        //       },
-        //       "opacity": {
-        //         "signal": "datum.sequence % 2 == 1 ? 0 : 1"
-        //       }
-        //     }
-        //   }
-        // }
+        
       ],
       "axes": [
         {
@@ -1492,7 +1408,7 @@
           "orient": "top",
           "bandPosition": 1,
           "labels": false,
-          "grid": false,
+          "grid": true,
           "tickExtra": true,
           "encode": {
             "grid": {
